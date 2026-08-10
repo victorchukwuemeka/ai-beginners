@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# ML artifacts
+ml-beginners/**/output/
+ml-beginners/**/lora_out/
+*.safetensors
+*.bin
+*.ckpt
+*.pt
+*.pth
+
+# Data
+*.csv
+!course/**/data/
+!ml-beginners/**/data/
+*.jsonl
+
+# Secrets / local
+.env
+*.pem
+*.key
+
+# OS
+.DS_Store
