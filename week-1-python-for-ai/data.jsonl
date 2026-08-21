@@ -1,0 +1,6 @@
+{"instruction": "What is the capital of France?", "output": "Paris.", "label": "geography"}
+{"instruction": "Summarize: The cat sat on the mat all day.", "output": "A cat rested.", "label": "summarize"}
+{"instruction": "Translate 'hello' to French.", "output": "Bonjour", "label": "translation"}
+{"instruction": "Is 17 a prime number? Answer yes or no.", "output": "Yes.", "label": "math"}
+{"instruction": "Write a one-line haiku about GPUs.", "output": "Fans roar in the night / matrices multiply fast / loss finally drops", "label": "creative"}
+{"instruction": "Classify sentiment: 'This movie was a waste of time.'", "output": "negative", "label": "classify"}

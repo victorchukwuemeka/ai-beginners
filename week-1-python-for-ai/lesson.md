@@ -9,6 +9,95 @@ Your job in this course is not to become a software engineer. It's to become flu
 
 ---
 
+### 0. Setup: Your Toolkit (do this once)
+
+You have two ways to run Python in this course:
+
+| Path | Install effort | GPU | Best for |
+|------|----------------|-----|----------|
+| **Google Colab** | none — just a browser | free T4 | Weeks 1–2, anything needing a GPU |
+| **Local Jupyter** | ~15 min, one time | your own machine | offline work, real datasets, Week 7+ |
+
+Weeks 1–2 run fine on Colab alone. Do the local setup when convenient — you'll want it eventually.
+
+#### Path 1: Colab (zero install)
+
+1. Go to [colab.research.google.com](https://colab.research.google.com) and sign in with any Google account.
+2. **File → New notebook.** You are now running Python.
+3. Free GPU (you'll need it in Week 7): **Runtime → Change runtime type → T4 GPU**.
+4. Confirm the GPU is real:
+
+```python
+import torch
+print(torch.cuda.is_available())   # True = GPU attached
+```
+
+Nothing to download, nothing to break. Sessions die when idle (~90 min), so save notebooks to Drive (**File → Save a copy in Drive**).
+
+#### Path 2: Local Jupyter
+
+**Step 1 — Install Python** (any version 3.10+ works)
+
+**Windows:**
+- Download the installer from [python.org/downloads](https://www.python.org/downloads/). On the first screen, **check "Add python.exe to PATH"** — skipping this checkbox is the #1 Windows setup mistake.
+- Or, in PowerShell: `winget install Python.Python.3.12`
+- Verify (open a *new* PowerShell window): `python --version`
+
+**macOS:**
+- With Homebrew: `brew install python` — or grab the python.org installer.
+- Verify in Terminal: `python3 --version`
+
+**Linux (Ubuntu/Debian):**
+
+```bash
+sudo apt update && sudo apt install -y python3 python3-pip python3-venv
+python3 --version
+```
+
+(Fedora/RHEL: `sudo dnf install python3 python3-pip`)
+
+**Step 2 — Make a work folder with a virtual environment**
+
+A venv keeps this course's packages isolated from your system Python — when Week 7 wants a specific library version, it won't wreck anything else.
+
+```bash
+mkdir ai-course && cd ai-course
+python3 -m venv .venv           # Windows: python -m venv .venv
+source .venv/bin/activate       # Windows: .venv\Scripts\activate
+```
+
+Your prompt now starts with `(.venv)` — packages install into it, not your system. Re-run the activate line in every new terminal session; leave with `deactivate`.
+
+**Step 3 — Install and launch Jupyter**
+
+```bash
+pip install jupyterlab
+jupyter lab        # opens http://localhost:8888 in your browser
+```
+
+Prefer the classic look? `pip install notebook`, then `jupyter notebook`.
+
+**Step 4 — Verify everything**
+
+```python
+import sys, json
+print(sys.version)      # 3.x.y — any 3.10+ is fine
+print("setup ok")
+```
+
+**Optional but worth it — VS Code:** install [VS Code](https://code.visualstudio.com/) plus its Python extension, then **File → Open Folder** on your work folder and **Ctrl+Shift+P → "Python: Select Interpreter" → pick `.venv`**. It opens `.ipynb` notebooks natively — Jupyter with autocomplete and a real debugger.
+
+**Troubleshooting quick hits:**
+
+| Symptom | Fix |
+|---------|-----|
+| `python: command not found` (Windows) | reinstall with "Add to PATH" checked, or try `py --version` |
+| `pip: command not found` | use `python -m pip install ...` instead |
+| `jupyter: command not found` | venv isn't activated — run the activate line again |
+| macOS pops up Xcode tools | safe to let it install, or use the python.org build |
+
+---
+
 ### 1. Variables and Types
 
 A variable is just a name bound to a value. Every value has a **type**, and the type decides what you can do with it.
@@ -258,6 +347,106 @@ with open("data.jsonl", "w") as f:
 records = [json.loads(line) for line in open("data.jsonl")]
 ```
 
+**Robust JSONL** — real files have blank lines, truncated downloads, and garbage rows. Skip what you can't parse, and count what survived:
+
+```python
+records, bad_lines = [], []
+with open("data.jsonl") as f:
+    for i, line in enumerate(f):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            records.append(json.loads(line))
+        except json.JSONDecodeError:
+            bad_lines.append(i)
+
+print(f"{len(records)} ok, {len(bad_lines)} bad: {bad_lines[:5]}")
+```
+
+Never trust a load silently — always compare `len(records)` against what you expected.
+
+**Nested JSON** — API responses and model outputs are dicts inside lists inside dicts. Read access chains left to right: "into `usage`, then `prompt_tokens`."
+
+```python
+resp = {
+    "model": "gpt2",
+    "usage": {"prompt_tokens": 5, "completion_tokens": 12},
+    "choices": [{"text": "Paris is...", "finish_reason": "stop"}],
+}
+
+resp["model"]                        # "gpt2"
+resp["usage"]["completion_tokens"]   # 12
+resp["choices"][0]["text"]           # "Paris is..."
+resp.get("missing", {}).get("key")   # None — safe chain, no crash
+```
+
+Lost three levels deep? Stop and print one level at a time: `print(resp["usage"])`, then go deeper.
+
+**Python ↔ JSON translation** — six types, two surprises:
+
+| Python | JSON | Watch out |
+|--------|------|-----------|
+| `dict` | object | keys become strings |
+| `list` | array | |
+| `tuple` | array | **round-trips into a list** |
+| `str` | string | |
+| `int` / `float` | number | |
+| `True` / `False` | `true` / `false` | case changes |
+| `None` | `null` | |
+
+```python
+t = (1, 2)
+back = json.loads(json.dumps(t))
+print(type(back))     # <class 'list'> — your tuple didn't survive
+```
+
+Some things don't translate at all — `set`, `datetime`, and your own classes raise `TypeError` on `dumps`. Convert them to strings/lists first.
+
+**Handy `dumps` options:**
+
+```python
+json.dumps(cfg, indent=2)             # human-readable — for files you'll eyeball
+json.dumps(cfg, sort_keys=True)       # stable order — clean diffs, clean git
+json.dumps(cfg, ensure_ascii=False)   # keeps "café" as café, not caf\u00e9
+```
+
+**When JSON breaks** — the error is `json.JSONDecodeError`, and its message names the exact line and column. The usual culprits:
+
+1. The file is really JSONL — many objects, one per line. Parse line by line.
+2. Truncated download — the tail is cut off mid-object.
+3. Python-style data pasted as JSON — single quotes and trailing commas are invalid JSON.
+
+```python
+bad = "{'task': 'classify'}"      # single quotes: valid Python, invalid JSON
+try:
+    json.loads(bad)
+except json.JSONDecodeError as e:
+    print(e)                       # Expecting property name enclosed in double quotes...
+```
+
+Rule of thumb: if `json.load` fails on a multi-line file, try the JSONL pattern before anything else.
+
+**Brain teasers** — attempt each before peeking at the answers:
+
+1. Flatten: `data = [{"tags": ["a", "b"]}, {"tags": ["c"]}, {}]` → `["a", "b", "c"]` in one comprehension.
+2. `x = (1, 2)` goes through `json.loads(json.dumps(x))`. What type comes back, and what could break downstream?
+3. A 2 GB JSONL file won't fit in RAM. Why does the line-by-line pattern still work?
+4. `cfg = json.load(open("cfg.json"))` returns `{"temperature": "0.7"}`. What happens later at `if cfg["temperature"] > 0.8:` — and where should the fix live?
+5. Merge `defaults` and `user_cfg` into one dict where user values win — one expression, no loop.
+
+<details><summary>Answers</summary>
+
+1. `[t for d in data for t in d.get("tags", [])]` — the `.get` handles the record with no `tags` key.
+2. A `list`. Anything that relied on tuple behavior (hashability, use as a dict key) behaves differently.
+3. Only one line is ever held as a string at a time — parse it, keep what you need, move on. Memory grows with kept records, not file size.
+4. `TypeError: '>' not supported between instances of 'str' and 'int'` — raised far away from the real cause. Fix at the boundary: `cfg["temperature"] = float(cfg["temperature"])` right after loading.
+5. `{**defaults, **user_cfg}` — later keys overwrite earlier ones.
+
+</details>
+
+---
+
 **The canonical AI dataset shape** — this exact structure will look familiar in Weeks 3, 6, and 7:
 
 ```python
@@ -329,6 +518,75 @@ except FileNotFoundError:
 ```
 
 Don't wrap everything in `try/except` — for this course, letting errors crash loudly and reading the traceback is the faster path.
+
+---
+
+### Debug Gym — fix these before moving on
+
+Reading about errors is not the same as reading errors. Run each snippet, read the traceback bottom-up, say the fix out loud, then apply it. Five minutes here beats an hour of re-reading.
+
+**Bug 1 — KeyError:**
+
+```python
+record = {"instruction": "Summarize this.", "output": "Paris."}
+print(record["prompt"])
+```
+
+Fix it twice: correct the key, then rewrite with `.get("prompt", "")`.
+
+**Bug 2 — the type that lied:**
+
+```python
+scores = ["0.9", "0.4", "0.75"]     # came from a CSV — all strings
+print(max(scores) > 0.8)
+```
+
+Two bugs hide here: the comparison crashes, and even without it, `max()` on strings compares alphabetically, not numerically. Fix until the answer is `True`.
+
+**Bug 3 — aliasing:**
+
+```python
+base_cfg = {"temperature": 0.7, "top_p": 0.9}
+run_a = base_cfg
+run_a["temperature"] = 1.0
+print(base_cfg["temperature"])      # why 1.0?
+```
+
+Make `run_a` independent, then verify `base_cfg` still prints `0.7`.
+
+**Bug 4 — IndexError:**
+
+```python
+batch = [{"text": "hi"}, {"text": "yo"}]
+for i in range(3):
+    print(batch[i]["text"])
+```
+
+Make the loop survive without shrinking `range(3)` — guard with `len(batch)`.
+
+**Bug 5 — ValueError:**
+
+```python
+k = int("top_3")
+```
+
+Where's this in real life? `int(cfg.get("k", "3"))` when a config value isn't numeric. Make it not crash with a sensible default.
+
+**Final boss — messy data:** build this file, then load it with the robust JSONL pattern from §8 and report: how many lines parsed, which were skipped, and which parsed records are missing the `output` key.
+
+```python
+rows = [
+    '{"instruction": "Q1", "output": "A1"}',
+    '{"instruction": "Q2"}',
+    'not json at all',
+    '',
+    '{"instruction": "Q3", "output": "A3"}',
+]
+with open("messy.jsonl", "w") as f:
+    f.write("\n".join(rows))
+```
+
+Expected outcome: 3 parsed, 2 skipped, 1 record missing `output`. If your numbers differ, reread the traceback — not the code.
 
 ---
 
@@ -423,9 +681,3 @@ json.dump(d, f)         # dict/list → JSON file
 json.dumps(d)           # dict/list → JSON string
 sorted(lst, key=lambda x: ...)  # sort by a key
 ```
-
-## Further Reading
-- Colab intro: https://colab.research.google.com/notebooks/intro.ipynb
-- Python for Everybody (free, short): https://www.py4e.com
-- Real Python's "Data Structures in Python": https://realpython.com/python-data-structures/
-- Hugging Face course (starts right here, at your level): https://huggingface.co/learn/nlp-course

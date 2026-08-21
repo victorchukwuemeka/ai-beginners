@@ -22,6 +22,7 @@ ml-beginners/**/lora_out/
 !course/**/data/
 !ml-beginners/**/data/
 *.jsonl
+!week-1-python-for-ai/data.jsonl
 
 # Secrets / local
 .env
