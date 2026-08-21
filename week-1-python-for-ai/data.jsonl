@@ -4,3 +4,9 @@
 {"instruction": "Is 17 a prime number? Answer yes or no.", "output": "Yes.", "label": "math"}
 {"instruction": "Write a one-line haiku about GPUs.", "output": "Fans roar in the night / matrices multiply fast / loss finally drops", "label": "creative"}
 {"instruction": "Classify sentiment: 'This movie was a waste of time.'", "output": "negative", "label": "classify"}
+{"instruction": "What is 12 * 11?", "output": "132", "label": "math"}
+{"instruction": "Name the largest ocean on Earth.", "output": "The Pacific Ocean.", "label": "geography"}
+{"instruction": "Classify sentiment: 'Best purchase I have ever made!'", "output": "positive", "label": "classify"}
+{"instruction": "Translate 'thank you' to Spanish.", "output": "Gracias", "label": "translation"}
+{"instruction": "Summarize: The stock market fell 3% today after the announcement.", "output": "Stocks dropped 3% on the news.", "label": "summarize"}
+{"instruction": "Write a one-sentence story about a robot learning to paint.", "output": "The robot dipped its brush in sunset colors and painted the first feeling it ever had.", "label": "creative"}
